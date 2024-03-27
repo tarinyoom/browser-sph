@@ -34,7 +34,7 @@ pub fn startup(
     };
     commands.spawn(bg);
 
-    for _ in 0..64 {
+    for _ in 0..globals.n {
         let p: ParticleBundle = ParticleBundle {
             mesh: meshes.add(shape::Circle::new(p_vz_sz).into()).into(),
             material: materials.add(ColorMaterial::from(Color::TURQUOISE)),
@@ -49,9 +49,9 @@ pub fn startup(
         };
         commands.spawn(p);
     }
-    commands.insert_resource(GameResource { val: globals });
     commands.insert_resource(GameResource {
-        val: Grid::<Entity>::new(),
+        val: Grid::<Entity>::new(&globals),
     });
+    commands.insert_resource(GameResource { val: globals });
     commands.spawn(Camera2dBundle::default());
 }

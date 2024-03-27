@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use itertools::izip;
 
 use super::{GameComponent, GameResource};
 
@@ -8,12 +9,8 @@ pub fn update_grid(
     particles: Query<(Entity, &GameComponent<Particle>)>,
     mut grid: ResMut<GameResource<Grid<Entity>>>,
 ) {
-    grid.val = Grid {
-        elems: particles
-            .iter()
-            .map(|(id, comp)| (id, comp.val.clone()))
-            .collect(),
-    };
+    let particle_iter = particles.iter().map(|(id, comp)| (id, comp.val.clone()));
+    grid.val.fill(particle_iter);
 }
 
 pub fn update_particles(
@@ -28,11 +25,17 @@ pub fn update_particles(
     }
 }
 
-fn make_color(rho: f64) -> Color {
-    // from 0 to 10
-    let r = (rho as f32 * 4000.0).min(1.0);
-    let gb = (1.0 - r) / 2.0;
+fn make_color(rho: f32, mean: f32, stdev: f32) -> Color {
+    let normalized = ((rho - mean) / stdev) as f32;
+    let r = (normalized * 0.25 + 0.5).min(1.0).max(0.0);
+    let gb = (1.0 - r) * 0.7;
     return Color::rgb(r, gb, gb);
+}
+
+fn area(g: &Globals) -> f32 {
+    izip!(&g.bounds_min, &g.bounds_max)
+        .map(|(min, max)| max - min)
+        .fold(1.0, |a, b| a * b) as f32
 }
 
 pub fn update_transforms(
@@ -42,13 +45,15 @@ pub fn update_transforms(
         &mut GameComponent<Particle>,
     )>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    globals: Res<GameResource<Globals>>,
 ) {
     for (mut transform, color, p) in &mut particles {
         transform.translation = unwrap(&p.val);
         let color_mat = materials.get_mut(&*color).unwrap();
-        color_mat.color = make_color(p.val.density);
-        // 0, 1 ,1
-        // 1, .5 ,.5
+        let n = globals.val.n as f32;
+        let mean = n / area(&globals.val);
+        let stdev = f32::sqrt(n) / 40000.0;
+        color_mat.color = make_color(p.val.density as f32, mean, stdev);
     }
 }
 
