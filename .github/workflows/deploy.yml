@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Download build
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: site-dist
           path: dist
